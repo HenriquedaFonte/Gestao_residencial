@@ -1,0 +1,53 @@
+import {
+  pgTable,
+  serial,
+  text,
+  integer,
+  boolean,
+  timestamp,
+  date,
+} from 'drizzle-orm/pg-core'
+
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+export const tasks = pgTable('tasks', {
+  id: serial('id').primaryKey(),
+  title: text('title').notNull(),
+  description: text('description'),
+  assigneeId: integer('assignee_id').references(() => users.id, {
+    onDelete: 'set null',
+  }),
+  status: text('status', { enum: ['pending', 'completed'] })
+    .default('pending')
+    .notNull(),
+  isRecurring: boolean('is_recurring').default(false).notNull(),
+  // Comma-separated days: "1,3,5" = Mon, Wed, Fri (0=Sun, 6=Sat)
+  recurrenceDays: text('recurrence_days'),
+  parentTaskId: integer('parent_task_id'),
+  scheduledDate: date('scheduled_date'),
+  completedAt: timestamp('completed_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
+export const events = pgTable('events', {
+  id: serial('id').primaryKey(),
+  title: text('title').notNull(),
+  date: date('date').notNull(),
+  time: text('time'),
+  location: text('location'),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
+export type User = typeof users.$inferSelect
+export type NewUser = typeof users.$inferInsert
+export type Task = typeof tasks.$inferSelect
+export type NewTask = typeof tasks.$inferInsert
+export type Event = typeof events.$inferSelect
+export type NewEvent = typeof events.$inferInsert

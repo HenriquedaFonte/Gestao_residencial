@@ -1,7 +1,7 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  // Using manual service worker instead of next-pwa for Turbopack compatibility
+}
 
-export default nextConfig;
+export default nextConfig
