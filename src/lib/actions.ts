@@ -115,7 +115,7 @@ export async function createTask(formData: FormData) {
     ? Number(formData.get('assigneeId'))
     : null
   const isRecurring = formData.get('isRecurring') === 'true'
-  const recurrenceType = (formData.get('recurrenceType') as 'weekly' | 'monthly' | null) ?? 'weekly'
+  const recurrenceType = (formData.get('recurrenceType') as 'daily' | 'weekly' | 'monthly' | null) ?? 'weekly'
   const recurrenceDays = formData.get('recurrenceDays') as string | null
   const recurrenceMonthDay = formData.get('recurrenceMonthDay')
     ? Number(formData.get('recurrenceMonthDay'))
@@ -135,7 +135,9 @@ export async function createTask(formData: FormData) {
     .returning()
 
   if (isRecurring) {
-    if (recurrenceType === 'monthly' && recurrenceMonthDay) {
+    if (recurrenceType === 'daily') {
+      await generateInstancesForTask(newTask.id, '0,1,2,3,4,5,6')
+    } else if (recurrenceType === 'monthly' && recurrenceMonthDay) {
       await generateMonthlyInstanceForTask(newTask.id, recurrenceMonthDay)
     } else {
       await generateInstancesForTask(newTask.id, recurrenceDays || '')
@@ -161,7 +163,7 @@ export async function updateTask(id: number, formData: FormData) {
     ? Number(formData.get('assigneeId'))
     : null
   const isRecurring = formData.get('isRecurring') === 'true'
-  const recurrenceType = (formData.get('recurrenceType') as 'weekly' | 'monthly' | null) ?? 'weekly'
+  const recurrenceType = (formData.get('recurrenceType') as 'daily' | 'weekly' | 'monthly' | null) ?? 'weekly'
   const recurrenceDays = formData.get('recurrenceDays') as string | null
   const recurrenceMonthDay = formData.get('recurrenceMonthDay')
     ? Number(formData.get('recurrenceMonthDay'))
@@ -317,7 +319,9 @@ export async function generateRecurringInstances() {
     .where(and(eq(tasks.isRecurring, true), isNull(tasks.parentTaskId)))
 
   for (const task of recurringTasks) {
-    if (task.recurrenceType === 'monthly' && task.recurrenceMonthDay) {
+    if (task.recurrenceType === 'daily') {
+      await generateInstancesForTask(task.id, '0,1,2,3,4,5,6')
+    } else if (task.recurrenceType === 'monthly' && task.recurrenceMonthDay) {
       await generateMonthlyInstanceForTask(task.id, task.recurrenceMonthDay)
     } else {
       await generateInstancesForTask(task.id, task.recurrenceDays || '')

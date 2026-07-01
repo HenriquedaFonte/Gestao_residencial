@@ -25,7 +25,7 @@ export const tasks = pgTable('tasks', {
     .default('pending')
     .notNull(),
   isRecurring: boolean('is_recurring').default(false).notNull(),
-  recurrenceType: text('recurrence_type', { enum: ['weekly', 'monthly'] }),
+  recurrenceType: text('recurrence_type', { enum: ['daily', 'weekly', 'monthly'] }),
   // Weekly: comma-separated day numbers "1,3,5" = Mon, Wed, Fri (0=Sun, 6=Sat)
   recurrenceDays: text('recurrence_days'),
   // Monthly: day of month (1–28)

@@ -28,8 +28,8 @@ export function TaskForm({ task }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isRecurring, setIsRecurring] = useState(task?.isRecurring ?? false)
-  const [recurrenceType, setRecurrenceType] = useState<'weekly' | 'monthly'>(
-    task?.recurrenceType === 'monthly' ? 'monthly' : 'weekly'
+  const [recurrenceType, setRecurrenceType] = useState<'daily' | 'weekly' | 'monthly'>(
+    task?.recurrenceType === 'monthly' ? 'monthly' : task?.recurrenceType === 'daily' ? 'daily' : 'weekly'
   )
   const [selectedDays, setSelectedDays] = useState<string[]>(
     task?.recurrenceDays ? task.recurrenceDays.split(',') : []
@@ -147,6 +147,17 @@ export function TaskForm({ task }: Props) {
             <div className="mb-4 flex rounded-xl border border-line bg-paper p-1">
               <button
                 type="button"
+                onClick={() => setRecurrenceType('daily')}
+                className={`flex-1 rounded-lg py-1.5 text-[11.5px] font-semibold transition-colors ${
+                  recurrenceType === 'daily'
+                    ? 'bg-terracotta text-white'
+                    : 'text-muted'
+                }`}
+              >
+                Diária
+              </button>
+              <button
+                type="button"
                 onClick={() => setRecurrenceType('weekly')}
                 className={`flex-1 rounded-lg py-1.5 text-[11.5px] font-semibold transition-colors ${
                   recurrenceType === 'weekly'
@@ -169,7 +180,9 @@ export function TaskForm({ task }: Props) {
               </button>
             </div>
 
-            {recurrenceType === 'weekly' ? (
+            {recurrenceType === 'daily' ? (
+              <p className="text-[12.5px] text-muted">Aparece todos os dias automaticamente.</p>
+            ) : recurrenceType === 'weekly' ? (
               <div className="flex flex-wrap gap-1.5">
                 {DAYS.map(({ value, label }) => (
                   <button
