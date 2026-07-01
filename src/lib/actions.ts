@@ -2,7 +2,7 @@
 
 import { db } from '@/db'
 import { tasks, events, users, rewards, monthlyWinners } from '@/db/schema'
-import { eq, and, isNull, isNotNull, gte, lte, gt, asc, desc, count } from 'drizzle-orm'
+import { eq, and, isNull, isNotNull, gte, lte, gt, lt, asc, desc } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { revalidatePath } from 'next/cache'
 import {
@@ -13,7 +13,7 @@ import {
   notifyEventUpdated,
   sendTelegramMessage,
 } from './telegram'
-import { getCurrentWeekDayNumbers, getWeekDates, getTodayDateString } from './utils'
+import { getCurrentWeekDayNumbers, getWeekDates, getTodayDateString, getMonthRangeUtc } from './utils'
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
@@ -419,7 +419,7 @@ function taskPoints(recurrenceType: string | null): number {
 }
 
 export async function getMonthlyScores(year: number, month: number) {
-  const { start, end } = monthRange(year, month)
+  const { start, end } = getMonthRangeUtc(year, month)
   const parentTask = alias(tasks, 'parent_task')
 
   const rows = await db
@@ -433,8 +433,8 @@ export async function getMonthlyScores(year: number, month: number) {
       and(
         eq(tasks.status, 'completed'),
         isNotNull(tasks.completedById),
-        gte(tasks.completedAt, new Date(start)),
-        lte(tasks.completedAt, new Date(end))
+        gte(tasks.completedAt, start),
+        lt(tasks.completedAt, end)
       )
     )
 
@@ -448,14 +448,14 @@ export async function getMonthlyScores(year: number, month: number) {
 }
 
 export async function getTaskHistory(year: number, month: number, userId?: number) {
-  const { start, end } = monthRange(year, month)
+  const { start, end } = getMonthRangeUtc(year, month)
   const parentTask = alias(tasks, 'parent_task')
 
   const conditions = [
     eq(tasks.status, 'completed'),
     isNotNull(tasks.completedAt),
-    gte(tasks.completedAt, new Date(start)),
-    lte(tasks.completedAt, new Date(end)),
+    gte(tasks.completedAt, start),
+    lt(tasks.completedAt, end),
   ] as Parameters<typeof and>
 
   if (userId) {
@@ -473,14 +473,6 @@ export async function getTaskHistory(year: number, month: number, userId?: numbe
     .leftJoin(parentTask, eq(tasks.parentTaskId, parentTask.id))
     .where(and(...conditions))
     .orderBy(desc(tasks.completedAt))
-}
-
-function monthRange(year: number, month: number) {
-  const start = `${year}-${String(month).padStart(2, '0')}-01T00:00:00.000Z`
-  const nextMonth = month === 12 ? 1 : month + 1
-  const nextYear = month === 12 ? year + 1 : year
-  const end = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01T00:00:00.000Z`
-  return { start, end }
 }
 
 export async function getMonthlyWinner(month: string) {

@@ -77,3 +77,49 @@ export function isToday(dateStr: string): boolean {
 export function isPast(dateStr: string): boolean {
   return dateStr < getTodayDateString()
 }
+
+// Minutos que devem ser somados a um instante UTC para obter o horário local em `timeZone`
+function getTimezoneOffsetMinutes(date: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+    .formatToParts(date)
+    .reduce((acc, p) => {
+      if (p.type !== 'literal') acc[p.type] = p.value
+      return acc
+    }, {} as Record<string, string>)
+
+  const asUTC = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second)
+  )
+  return (asUTC - date.getTime()) / 60000
+}
+
+// Converte meia-noite local (timezone de Montreal) de uma data de calendário para o instante UTC correspondente
+function localMidnightToUtc(year: number, month: number, day: number): Date {
+  const naive = Date.UTC(year, month - 1, day, 0, 0, 0)
+  const offsetMinutes = getTimezoneOffsetMinutes(new Date(naive), TZ)
+  return new Date(naive - offsetMinutes * 60000)
+}
+
+// Limites (em UTC) do mês de calendário local — usado para filtrar completedAt corretamente
+export function getMonthRangeUtc(year: number, month: number): { start: Date; end: Date } {
+  const nextMonth = month === 12 ? 1 : month + 1
+  const nextYear = month === 12 ? year + 1 : year
+  return {
+    start: localMidnightToUtc(year, month, 1),
+    end: localMidnightToUtc(nextYear, nextMonth, 1),
+  }
+}
