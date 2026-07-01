@@ -69,13 +69,13 @@ export async function getTasksForDashboard() {
     )
     .orderBy(asc(tasks.createdAt))
 
-  // Today's recurring instances
+  // Today's recurring instances (pending only — completed ones are hidden like one-off tasks)
   const recurringToday = await db
     .select({ task: tasks, user: users })
     .from(tasks)
     .leftJoin(users, eq(tasks.assigneeId, users.id))
-    .where(eq(tasks.scheduledDate, today))
-    .orderBy(asc(tasks.status), asc(tasks.createdAt))
+    .where(and(eq(tasks.scheduledDate, today), eq(tasks.status, 'pending')))
+    .orderBy(asc(tasks.createdAt))
 
   return { oneOffTasks, recurringToday }
 }

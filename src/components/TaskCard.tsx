@@ -32,9 +32,11 @@ export function TaskCard({ task, user, showDate = false }: Props) {
 
   const isCompleted = task.status === 'completed'
   const isHenrique = user?.name === 'Henrique'
+  // Template: recurring parent task — only instances (from dashboard) can be completed
+  const isTemplate = task.isRecurring && !task.parentTaskId
 
   function handleToggle() {
-    if (!currentUser) return
+    if (!currentUser || isTemplate) return
     startTransition(async () => {
       if (isCompleted) {
         await reopenTask(task.id)
@@ -61,18 +63,23 @@ export function TaskCard({ task, user, showDate = false }: Props) {
       {/* Checkbox */}
       <button
         onClick={handleToggle}
-        disabled={isPending}
+        disabled={isPending || isTemplate}
+        title={isTemplate ? 'Conclua pelo dashboard no dia agendado' : undefined}
         className={`mt-0.5 flex h-[21px] w-[21px] flex-shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-          isCompleted
+          isTemplate
+            ? 'cursor-default border-line bg-line/40 text-muted'
+            : isCompleted
             ? 'border-success bg-success text-white'
             : 'border-line hover:border-terracotta/60'
         }`}
       >
-        {isCompleted && (
+        {isTemplate ? (
+          <RecurringIcon />
+        ) : isCompleted ? (
           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
           </svg>
-        )}
+        ) : null}
       </button>
 
       {/* Content */}
