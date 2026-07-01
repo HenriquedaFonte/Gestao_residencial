@@ -6,6 +6,7 @@ import {
   boolean,
   timestamp,
   date,
+  unique,
 } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
@@ -62,6 +63,21 @@ export const rewards = pgTable('rewards', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
+export const monthlyWinners = pgTable(
+  'monthly_winners',
+  {
+    id: serial('id').primaryKey(),
+    month: text('month').notNull(), // YYYY-MM
+    winnerId: integer('winner_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    isTie: boolean('is_tie').default(false).notNull(),
+    totalPoints: integer('total_points').notNull(),
+    finalizedAt: timestamp('finalized_at').defaultNow().notNull(),
+  },
+  (table) => [unique('monthly_winners_month_unique').on(table.month)]
+)
+
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
 export type Task = typeof tasks.$inferSelect
@@ -70,3 +86,5 @@ export type Event = typeof events.$inferSelect
 export type NewEvent = typeof events.$inferInsert
 export type Reward = typeof rewards.$inferSelect
 export type NewReward = typeof rewards.$inferInsert
+export type MonthlyWinner = typeof monthlyWinners.$inferSelect
+export type NewMonthlyWinner = typeof monthlyWinners.$inferInsert

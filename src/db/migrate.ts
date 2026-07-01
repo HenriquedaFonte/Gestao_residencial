@@ -62,6 +62,19 @@ async function main() {
     )
   `
 
+  // Monthly winners table
+  await sql`
+    CREATE TABLE IF NOT EXISTS monthly_winners (
+      id SERIAL PRIMARY KEY,
+      month TEXT NOT NULL,
+      winner_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      is_tie BOOLEAN NOT NULL DEFAULT FALSE,
+      total_points INTEGER NOT NULL,
+      finalized_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      CONSTRAINT monthly_winners_month_unique UNIQUE (month)
+    )
+  `
+
   // Seed users
   await sql`
     INSERT INTO users (name)
@@ -70,7 +83,7 @@ async function main() {
   `
 
   console.log('✅ Banco de dados configurado com sucesso!')
-  console.log('   Tabelas: users, tasks, events, rewards')
+  console.log('   Tabelas: users, tasks, events, rewards, monthly_winners')
   console.log('   Usuários: Henrique (id=1), Josiane (id=2)')
 }
 

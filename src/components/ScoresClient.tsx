@@ -4,15 +4,17 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createReward, deleteReward } from '@/lib/actions'
 import { useCurrentUser } from './UserContext'
-import { Reward, User } from '@/db/schema'
+import { Reward, User, MonthlyWinner } from '@/db/schema'
 
 type ScoreEntry = { user: User; total: number }
 type RewardEntry = { reward: Reward; user: User | null }
+type FinalizedWinnerEntry = { winner: MonthlyWinner; user: User | null } | null
 
 type Props = {
   scores: ScoreEntry[]
   rewards: RewardEntry[]
   currentMonth: string // YYYY-MM
+  finalizedWinner?: FinalizedWinnerEntry
 }
 
 function TrophyIcon({ className }: { className?: string }) {
@@ -72,7 +74,7 @@ function isCurrentMonth(month: string): boolean {
   return month === `${y}-${m}`
 }
 
-export function ScoresClient({ scores, rewards, currentMonth }: Props) {
+export function ScoresClient({ scores, rewards, currentMonth, finalizedWinner }: Props) {
   const router = useRouter()
   const { currentUser } = useCurrentUser()
   const [isPending, startTransition] = useTransition()
@@ -157,6 +159,9 @@ export function ScoresClient({ scores, rewards, currentMonth }: Props) {
         <div className="mb-6 rounded-2xl border border-line bg-card px-4 py-4 text-center">
           <p className="font-serif text-lg font-semibold text-ink">Empate!</p>
           <p className="mt-1 text-[12px] text-muted">{total} tarefa{total !== 1 ? 's' : ''} concluída{total !== 1 ? 's' : ''}</p>
+          {!isCurrent && finalizedWinner && (
+            <p className="mt-2 text-[10.5px] font-semibold text-terracotta">🏆 Resultado oficial</p>
+          )}
         </div>
       ) : winner ? (
         <div className="mb-6 rounded-2xl bg-terracotta px-4 py-4 text-white">
@@ -165,6 +170,7 @@ export function ScoresClient({ scores, rewards, currentMonth }: Props) {
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wide opacity-80">
                 {isCurrent ? 'Liderando' : 'Vencedor do mês'}
+                {!isCurrent && finalizedWinner && ' · Resultado oficial'}
               </p>
               <p className="font-serif text-xl font-semibold leading-tight">{winner.user.name}</p>
               <p className="text-[12px] opacity-85">

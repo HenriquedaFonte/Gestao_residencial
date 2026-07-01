@@ -1,7 +1,7 @@
 'use server'
 
 import { db } from '@/db'
-import { tasks, events, users, rewards } from '@/db/schema'
+import { tasks, events, users, rewards, monthlyWinners } from '@/db/schema'
 import { eq, and, isNull, isNotNull, gte, lte, gt, asc, desc, count } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { revalidatePath } from 'next/cache'
@@ -11,6 +11,7 @@ import {
   notifyTaskUpdated,
   notifyEventCreated,
   notifyEventUpdated,
+  sendTelegramMessage,
 } from './telegram'
 import { getCurrentWeekDayNumbers, getWeekDates, getTodayDateString } from './utils'
 
@@ -55,6 +56,7 @@ export async function getAllTasks() {
 export async function getTasksForDashboard() {
   const today = getTodayDateString()
   await generateRecurringInstances()
+  await finalizeMonthlyWinnerIfNeeded()
 
   // One-off tasks that are pending (no scheduledDate or scheduled for today/past)
   const oneOffTasks = await db
@@ -479,6 +481,67 @@ function monthRange(year: number, month: number) {
   const nextYear = month === 12 ? year + 1 : year
   const end = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01T00:00:00.000Z`
   return { start, end }
+}
+
+export async function getMonthlyWinner(month: string) {
+  const result = await db
+    .select({ winner: monthlyWinners, user: users })
+    .from(monthlyWinners)
+    .leftJoin(users, eq(monthlyWinners.winnerId, users.id))
+    .where(eq(monthlyWinners.month, month))
+    .limit(1)
+  return result[0] ?? null
+}
+
+// Runs on every dashboard load. Once a new month has started, locks in the
+// previous month's winner (idempotent via the unique constraint on `month`)
+// and announces it on Telegram.
+export async function finalizeMonthlyWinnerIfNeeded() {
+  const today = getTodayDateString()
+  const [year, month] = today.split('-').map(Number)
+  const prevMonth = month === 1 ? 12 : month - 1
+  const prevYear = month === 1 ? year - 1 : year
+  const monthKey = `${prevYear}-${String(prevMonth).padStart(2, '0')}`
+
+  const existing = await db
+    .select()
+    .from(monthlyWinners)
+    .where(eq(monthlyWinners.month, monthKey))
+    .limit(1)
+  if (existing.length > 0) return
+
+  const scores = await getMonthlyScores(prevYear, prevMonth)
+  const total = scores.reduce((sum, s) => sum + s.total, 0)
+  if (total === 0) return // nothing completed last month — nothing to finalize yet
+
+  const topScore = Math.max(...scores.map((s) => s.total))
+  const topScorers = scores.filter((s) => s.total === topScore)
+  const isTie = topScorers.length > 1
+
+  const [inserted] = await db
+    .insert(monthlyWinners)
+    .values({
+      month: monthKey,
+      winnerId: isTie ? null : topScorers[0].user.id,
+      isTie,
+      totalPoints: topScore,
+    })
+    .onConflictDoNothing({ target: monthlyWinners.month })
+    .returning()
+
+  if (!inserted) return // already finalized by a concurrent request
+
+  if (isTie) {
+    await sendTelegramMessage(
+      `🏆 <b>Empate no mês de ${monthKey}!</b>\n\nNinguém levou o prêmio dessa vez — ambos fizeram ${topScore} pontos.`
+    )
+  } else {
+    await sendTelegramMessage(
+      `🏆 <b>Vencedor do mês definido!</b>\n\n<b>${topScorers[0].user.name}</b> venceu ${monthKey} com ${topScore} pontos! 🎉`
+    )
+  }
+
+  revalidatePath('/scores')
 }
 
 // ─── Rewards ──────────────────────────────────────────────────────────────────
