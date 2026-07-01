@@ -2,7 +2,8 @@
 
 import { db } from '@/db'
 import { tasks, events, users, rewards } from '@/db/schema'
-import { eq, and, isNull, isNotNull, gte, lte, gt, asc, count } from 'drizzle-orm'
+import { eq, and, isNull, isNotNull, gte, lte, gt, asc, desc, count } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import { revalidatePath } from 'next/cache'
 import {
   notifyTaskCreated,
@@ -409,18 +410,23 @@ export async function deleteEvent(id: number) {
 
 // ─── Scores ───────────────────────────────────────────────────────────────────
 
+function taskPoints(recurrenceType: string | null): number {
+  if (recurrenceType === 'monthly') return 5
+  if (recurrenceType === 'weekly') return 3
+  return 1 // daily or one-off
+}
+
 export async function getMonthlyScores(year: number, month: number) {
-  const start = `${year}-${String(month).padStart(2, '0')}-01T00:00:00.000Z`
-  const nextMonth = month === 12 ? 1 : month + 1
-  const nextYear = month === 12 ? year + 1 : year
-  const end = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01T00:00:00.000Z`
+  const { start, end } = monthRange(year, month)
+  const parentTask = alias(tasks, 'parent_task')
 
   const rows = await db
     .select({
       completedById: tasks.completedById,
-      total: count(),
+      parentRecurrenceType: parentTask.recurrenceType,
     })
     .from(tasks)
+    .leftJoin(parentTask, eq(tasks.parentTaskId, parentTask.id))
     .where(
       and(
         eq(tasks.status, 'completed'),
@@ -429,14 +435,50 @@ export async function getMonthlyScores(year: number, month: number) {
         lte(tasks.completedAt, new Date(end))
       )
     )
-    .groupBy(tasks.completedById)
 
   const allUsers = await db.select().from(users).orderBy(asc(users.id))
 
   return allUsers.map((user) => {
-    const row = rows.find((r) => r.completedById === user.id)
-    return { user, total: Number(row?.total ?? 0) }
+    const userRows = rows.filter((r) => r.completedById === user.id)
+    const total = userRows.reduce((sum, r) => sum + taskPoints(r.parentRecurrenceType), 0)
+    return { user, total }
   })
+}
+
+export async function getTaskHistory(year: number, month: number, userId?: number) {
+  const { start, end } = monthRange(year, month)
+  const parentTask = alias(tasks, 'parent_task')
+
+  const conditions = [
+    eq(tasks.status, 'completed'),
+    isNotNull(tasks.completedAt),
+    gte(tasks.completedAt, new Date(start)),
+    lte(tasks.completedAt, new Date(end)),
+  ] as Parameters<typeof and>
+
+  if (userId) {
+    conditions.push(eq(tasks.completedById, userId))
+  }
+
+  return db
+    .select({
+      task: tasks,
+      completedBy: users,
+      parentRecurrenceType: parentTask.recurrenceType,
+    })
+    .from(tasks)
+    .leftJoin(users, eq(tasks.completedById, users.id))
+    .leftJoin(parentTask, eq(tasks.parentTaskId, parentTask.id))
+    .where(and(...conditions))
+    .orderBy(desc(tasks.completedAt))
+}
+
+function monthRange(year: number, month: number) {
+  const start = `${year}-${String(month).padStart(2, '0')}-01T00:00:00.000Z`
+  const nextMonth = month === 12 ? 1 : month + 1
+  const nextYear = month === 12 ? year + 1 : year
+  const end = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01T00:00:00.000Z`
+  return { start, end }
 }
 
 // ─── Rewards ──────────────────────────────────────────────────────────────────

@@ -123,6 +123,12 @@ export function ScoresClient({ scores, rewards, currentMonth }: Props) {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <h1 className="font-serif text-2xl font-semibold text-ink">Placar</h1>
+        <button
+          onClick={() => router.push(`/history?month=${currentMonth}`)}
+          className="text-[12px] font-semibold text-terracotta"
+        >
+          Histórico
+        </button>
       </div>
 
       {/* Month selector */}
@@ -162,7 +168,7 @@ export function ScoresClient({ scores, rewards, currentMonth }: Props) {
               </p>
               <p className="font-serif text-xl font-semibold leading-tight">{winner.user.name}</p>
               <p className="text-[12px] opacity-85">
-                {winner.total} tarefa{winner.total !== 1 ? 's' : ''} · {total} no total
+                {winner.total} ponto{winner.total !== 1 ? 's' : ''} · {total} no total
               </p>
             </div>
           </div>
@@ -198,7 +204,7 @@ export function ScoresClient({ scores, rewards, currentMonth }: Props) {
                 />
               </div>
               <p className="mt-1.5 text-[10.5px] text-muted">
-                {userTotal} tarefa{userTotal !== 1 ? 's' : ''} concluída{userTotal !== 1 ? 's' : ''}
+                {userTotal} ponto{userTotal !== 1 ? 's' : ''}
               </p>
             </div>
           )
