@@ -17,7 +17,7 @@ export default async function EventDetailPage({
 
   return (
     <div className="mx-auto max-w-lg px-4 py-6">
-      <h1 className="mb-6 text-2xl font-bold text-gray-800">Editar Evento</h1>
+      <h1 className="mb-6 font-serif text-2xl font-semibold text-ink">Editar Evento</h1>
       <EventForm event={event} />
 
       <div className="mt-6">

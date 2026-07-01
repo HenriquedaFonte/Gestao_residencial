@@ -15,6 +15,9 @@ const DAYS = [
   { value: '6', label: 'Sáb' },
 ]
 
+const inputClass =
+  'w-full rounded-[13px] border border-line bg-card px-4 py-3 text-[13px] font-medium text-ink placeholder-muted outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta-soft'
+
 type Props = {
   task?: Task
 }
@@ -64,10 +67,10 @@ export function TaskForm({ task }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {/* Title */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-gray-700">
+        <label className="mb-1.5 block text-[11.5px] font-semibold text-muted">
           Título <span className="text-red-500">*</span>
         </label>
         <input
@@ -75,82 +78,77 @@ export function TaskForm({ task }: Props) {
           defaultValue={task?.title}
           required
           placeholder="Ex: Lavar a louça"
-          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-800 placeholder-gray-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          className={inputClass}
         />
       </div>
 
       {/* Description */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-gray-700">
-          Descrição <span className="text-gray-400">(opcional)</span>
+        <label className="mb-1.5 block text-[11.5px] font-semibold text-muted">
+          Descrição <span className="text-muted font-normal">(opcional)</span>
         </label>
         <textarea
           name="description"
           defaultValue={task?.description ?? ''}
           placeholder="Detalhes adicionais..."
           rows={3}
-          className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 text-gray-800 placeholder-gray-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          className={`${inputClass} resize-none`}
         />
       </div>
 
       {/* Assignee */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-gray-700">
+        <label className="mb-1.5 block text-[11.5px] font-semibold text-muted">
           Responsável
         </label>
         <select
           name="assigneeId"
           defaultValue={task?.assigneeId ?? ''}
-          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          className={inputClass}
         >
           <option value="">Qualquer um dos dois</option>
-          <option value="1">👨 Henrique</option>
-          <option value="2">👩 Josiane</option>
+          <option value="1">Henrique</option>
+          <option value="2">Josiane</option>
         </select>
       </div>
 
       {/* Recurring toggle */}
-      <div className="rounded-xl border border-gray-200 p-4">
+      <div className="rounded-[14px] border border-line bg-card p-4">
         <label className="flex cursor-pointer items-center gap-3">
           <div
             onClick={() => setIsRecurring(!isRecurring)}
-            className={`relative h-6 w-11 rounded-full transition-colors ${
-              isRecurring ? 'bg-indigo-600' : 'bg-gray-300'
+            className={`relative h-[22px] w-10 rounded-full transition-colors ${
+              isRecurring ? 'bg-terracotta' : 'bg-line'
             }`}
           >
             <div
-              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                isRecurring ? 'translate-x-5' : 'translate-x-0.5'
+              className={`absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow transition-transform ${
+                isRecurring ? 'translate-x-[20px]' : 'translate-x-[2px]'
               }`}
             />
           </div>
           <div>
-            <div className="font-medium text-gray-700">Tarefa recorrente</div>
-            <div className="text-xs text-gray-400">Repete semanalmente nos dias selecionados</div>
+            <div className="text-[12.5px] font-semibold text-ink">Tarefa recorrente</div>
+            <div className="text-[10.5px] text-muted">Repete semanalmente</div>
           </div>
         </label>
 
         {isRecurring && (
-          <div className="mt-4">
-            <p className="mb-2 text-sm font-medium text-gray-600">
-              Repetir nos dias:
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {DAYS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => toggleDay(value)}
-                  className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                    selectedDays.includes(value)
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {DAYS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => toggleDay(value)}
+                className={`rounded-2xl px-3 py-1.5 text-[10.5px] font-semibold transition-colors ${
+                  selectedDays.includes(value)
+                    ? 'bg-terracotta text-white'
+                    : 'bg-terracotta-soft/60 text-muted hover:bg-terracotta-soft'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         )}
       </div>
@@ -165,7 +163,7 @@ export function TaskForm({ task }: Props) {
       <button
         type="submit"
         disabled={isPending}
-        className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3.5 font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:opacity-60"
+        className="mt-2 flex items-center justify-center gap-2 rounded-[14px] bg-terracotta py-3 text-[14px] font-semibold text-white transition-colors hover:bg-terracotta-dark disabled:opacity-60"
       >
         {isPending ? (
           <>
@@ -180,7 +178,7 @@ export function TaskForm({ task }: Props) {
       <button
         type="button"
         onClick={() => router.back()}
-        className="py-3 text-sm font-medium text-gray-500"
+        className="py-2 text-sm font-medium text-muted"
       >
         Cancelar
       </button>

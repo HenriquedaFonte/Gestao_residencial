@@ -25,25 +25,18 @@ export default async function DashboardPage() {
       <DashboardHeader pendingCount={pendingCount} />
 
       {/* Today's Tasks */}
-      <section className="mt-6">
+      <section className="mt-7">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-800">Tarefas de Hoje</h2>
-          <Link
-            href="/tasks"
-            className="text-sm font-medium text-indigo-600"
-          >
-            Ver todas →
+          <h2 className="font-serif text-[17px] font-semibold text-ink">Tarefas de Hoje</h2>
+          <Link href="/tasks" className="text-[12px] font-semibold text-terracotta">
+            Ver todas
           </Link>
         </div>
 
         {recurringToday.length === 0 && oneOffTasks.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-200 py-10 text-center">
-            <div className="text-4xl">🎉</div>
-            <p className="mt-2 font-medium text-gray-500">Nenhuma tarefa por hoje!</p>
-            <Link
-              href="/tasks/new"
-              className="mt-3 inline-block text-sm font-medium text-indigo-600"
-            >
+          <div className="rounded-2xl border border-dashed border-line py-10 text-center">
+            <p className="text-[13px] font-medium text-muted">Nenhuma tarefa por hoje</p>
+            <Link href="/tasks/new" className="mt-2 inline-block text-[12px] font-semibold text-terracotta">
               + Adicionar tarefa
             </Link>
           </div>
@@ -62,23 +55,16 @@ export default async function DashboardPage() {
       {/* Upcoming Events */}
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-800">Próximos Eventos</h2>
-          <Link
-            href="/events"
-            className="text-sm font-medium text-indigo-600"
-          >
-            Ver todos →
+          <h2 className="font-serif text-[17px] font-semibold text-ink">Próximos Eventos</h2>
+          <Link href="/events" className="text-[12px] font-semibold text-terracotta">
+            Ver todos
           </Link>
         </div>
 
         {upcomingEvents.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-200 py-10 text-center">
-            <div className="text-4xl">📅</div>
-            <p className="mt-2 font-medium text-gray-500">Nenhum evento agendado</p>
-            <Link
-              href="/events/new"
-              className="mt-3 inline-block text-sm font-medium text-indigo-600"
-            >
+          <div className="rounded-2xl border border-dashed border-line py-10 text-center">
+            <p className="text-[13px] font-medium text-muted">Nenhum evento agendado</p>
+            <Link href="/events/new" className="mt-2 inline-block text-[12px] font-semibold text-terracotta">
               + Adicionar evento
             </Link>
           </div>
@@ -95,14 +81,16 @@ export default async function DashboardPage() {
       <div className="fixed bottom-20 right-4 flex flex-col gap-2">
         <Link
           href="/events/new"
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-indigo-600 shadow-lg ring-1 ring-indigo-100"
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-line bg-card shadow-sm"
           title="Novo evento"
         >
-          📅
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C2683F" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+          </svg>
         </Link>
         <Link
           href="/tasks/new"
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-2xl text-white shadow-lg"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-terracotta text-2xl font-light text-white shadow-md"
           title="Nova tarefa"
         >
           +

@@ -1,9 +1,25 @@
 import type { Metadata, Viewport } from 'next'
+import { Newsreader, Hanken_Grotesk } from 'next/font/google'
 import './globals.css'
 import { UserProvider } from '@/components/UserContext'
 import { BottomNav } from '@/components/BottomNav'
 import { AppGuard } from '@/components/AppGuard'
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration'
+
+const newsreader = Newsreader({
+  subsets: ['latin'],
+  weight: ['500', '600'],
+  style: ['normal', 'italic'],
+  variable: '--font-serif',
+  display: 'swap',
+})
+
+const hankenGrotesk = Hanken_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-sans',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'Casa Arrumada',
@@ -24,7 +40,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#6366f1',
+  themeColor: '#C2683F',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -37,8 +53,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR" className="h-full">
-      <body className="h-full bg-gray-50">
+    <html lang="pt-BR" className={`h-full ${newsreader.variable} ${hankenGrotesk.variable}`}>
+      <body className="h-full bg-paper">
         <ServiceWorkerRegistration />
         <UserProvider>
           <AppGuard>

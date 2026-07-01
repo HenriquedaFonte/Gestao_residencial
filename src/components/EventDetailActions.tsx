@@ -25,9 +25,9 @@ export function EventDetailActions({ eventId, eventTitle }: Props) {
     <button
       onClick={handleDelete}
       disabled={isPending}
-      className="w-full rounded-xl border border-red-200 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-60"
+      className="w-full rounded-[14px] border border-red-200 py-3 text-[13px] font-semibold text-red-500 transition-colors hover:bg-red-50 disabled:opacity-60"
     >
-      {isPending ? 'Excluindo...' : '🗑 Excluir evento'}
+      {isPending ? 'Excluindo...' : 'Excluir evento'}
     </button>
   )
 }

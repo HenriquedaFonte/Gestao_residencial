@@ -19,11 +19,11 @@ export default async function TaskDetailPage({
 
   return (
     <div className="mx-auto max-w-lg px-4 py-6">
-      <h1 className="mb-6 text-2xl font-bold text-gray-800">Editar Tarefa</h1>
+      <h1 className="mb-6 font-serif text-2xl font-semibold text-ink">Editar Tarefa</h1>
 
       {task.parentTaskId && (
-        <div className="mb-4 rounded-xl bg-purple-50 px-4 py-3 text-sm text-purple-700">
-          🔁 Esta é uma instância de uma tarefa recorrente
+        <div className="mb-4 rounded-[13px] border border-terracotta/30 bg-terracotta-soft px-4 py-3 text-[12.5px] font-medium text-terracotta">
+          Instância de tarefa recorrente
         </div>
       )}
 

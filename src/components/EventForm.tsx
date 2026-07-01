@@ -36,11 +36,14 @@ export function EventForm({ event }: Props) {
     })
   }
 
+  const inputClass =
+    'w-full rounded-[13px] border border-line bg-card px-4 py-3 text-[13px] font-medium text-ink placeholder-muted outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta-soft'
+
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {/* Title */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-gray-700">
+        <label className="mb-1.5 block text-[11.5px] font-semibold text-muted">
           Título <span className="text-red-500">*</span>
         </label>
         <input
@@ -48,14 +51,14 @@ export function EventForm({ event }: Props) {
           defaultValue={event?.title}
           required
           placeholder="Ex: Consulta médica"
-          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-800 placeholder-gray-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          className={inputClass}
         />
       </div>
 
       {/* Date & Time row */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">
+          <label className="mb-1.5 block text-[11.5px] font-semibold text-muted">
             Data <span className="text-red-500">*</span>
           </label>
           <input
@@ -64,46 +67,46 @@ export function EventForm({ event }: Props) {
             defaultValue={event?.date ?? getTodayDateString()}
             required
             min={getTodayDateString()}
-            className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            className={inputClass}
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">
-            Horário <span className="text-gray-400">(opcional)</span>
+          <label className="mb-1.5 block text-[11.5px] font-semibold text-muted">
+            Horário <span className="text-muted font-normal">(opcional)</span>
           </label>
           <input
             name="time"
             type="time"
             defaultValue={event?.time ?? ''}
-            className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            className={inputClass}
           />
         </div>
       </div>
 
       {/* Location */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-gray-700">
-          Local <span className="text-gray-400">(opcional)</span>
+        <label className="mb-1.5 block text-[11.5px] font-semibold text-muted">
+          Local <span className="text-muted font-normal">(opcional)</span>
         </label>
         <input
           name="location"
           defaultValue={event?.location ?? ''}
           placeholder="Ex: Hospital das Clínicas"
-          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-800 placeholder-gray-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          className={inputClass}
         />
       </div>
 
       {/* Notes */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-gray-700">
-          Observações <span className="text-gray-400">(opcional)</span>
+        <label className="mb-1.5 block text-[11.5px] font-semibold text-muted">
+          Observações <span className="text-muted font-normal">(opcional)</span>
         </label>
         <textarea
           name="notes"
           defaultValue={event?.notes ?? ''}
           placeholder="Informações adicionais..."
           rows={3}
-          className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 text-gray-800 placeholder-gray-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          className={`${inputClass} resize-none`}
         />
       </div>
 
@@ -117,7 +120,7 @@ export function EventForm({ event }: Props) {
       <button
         type="submit"
         disabled={isPending}
-        className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3.5 font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:opacity-60"
+        className="mt-2 flex items-center justify-center gap-2 rounded-[14px] bg-terracotta py-3 text-[14px] font-semibold text-white transition-colors hover:bg-terracotta-dark disabled:opacity-60"
       >
         {isPending ? (
           <>
@@ -132,7 +135,7 @@ export function EventForm({ event }: Props) {
       <button
         type="button"
         onClick={() => router.back()}
-        className="py-3 text-sm font-medium text-gray-500"
+        className="py-2 text-sm font-medium text-muted"
       >
         Cancelar
       </button>
