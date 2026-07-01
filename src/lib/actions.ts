@@ -2,7 +2,7 @@
 
 import { db } from '@/db'
 import { tasks, events, users, rewards } from '@/db/schema'
-import { eq, and, isNull, isNotNull, gte, lte, asc, count, sql as drizzleSql } from 'drizzle-orm'
+import { eq, and, isNull, isNotNull, gte, lte, gt, asc, count } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import {
   notifyTaskCreated,
@@ -11,7 +11,7 @@ import {
   notifyEventCreated,
   notifyEventUpdated,
 } from './telegram'
-import { getCurrentWeekDayNumbers, getTodayDateString } from './utils'
+import { getCurrentWeekDayNumbers, getWeekDates, getTodayDateString } from './utils'
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
@@ -69,15 +69,33 @@ export async function getTasksForDashboard() {
     )
     .orderBy(asc(tasks.createdAt))
 
-  // Today's recurring instances (pending only — completed ones are hidden like one-off tasks)
+  // Today's recurring instances (all statuses — completed ones show as crossed out)
   const recurringToday = await db
     .select({ task: tasks, user: users })
     .from(tasks)
     .leftJoin(users, eq(tasks.assigneeId, users.id))
-    .where(and(eq(tasks.scheduledDate, today), eq(tasks.status, 'pending')))
-    .orderBy(asc(tasks.createdAt))
+    .where(and(eq(tasks.scheduledDate, today), isNotNull(tasks.parentTaskId)))
+    .orderBy(asc(tasks.status), asc(tasks.createdAt))
 
-  return { oneOffTasks, recurringToday }
+  // Upcoming recurring instances for the rest of the current week
+  const weekDates = getWeekDates()
+  const endOfWeek = weekDates[weekDates.length - 1]
+  const upcomingThisWeek = today < endOfWeek
+    ? await db
+        .select({ task: tasks, user: users })
+        .from(tasks)
+        .leftJoin(users, eq(tasks.assigneeId, users.id))
+        .where(
+          and(
+            isNotNull(tasks.parentTaskId),
+            gt(tasks.scheduledDate, today),
+            lte(tasks.scheduledDate, endOfWeek)
+          )
+        )
+        .orderBy(asc(tasks.scheduledDate), asc(tasks.createdAt))
+    : []
+
+  return { oneOffTasks, recurringToday, upcomingThisWeek }
 }
 
 export async function getTaskById(id: number) {
@@ -97,7 +115,11 @@ export async function createTask(formData: FormData) {
     ? Number(formData.get('assigneeId'))
     : null
   const isRecurring = formData.get('isRecurring') === 'true'
+  const recurrenceType = (formData.get('recurrenceType') as 'weekly' | 'monthly' | null) ?? 'weekly'
   const recurrenceDays = formData.get('recurrenceDays') as string | null
+  const recurrenceMonthDay = formData.get('recurrenceMonthDay')
+    ? Number(formData.get('recurrenceMonthDay'))
+    : null
 
   const [newTask] = await db
     .insert(tasks)
@@ -106,12 +128,18 @@ export async function createTask(formData: FormData) {
       description: description || null,
       assigneeId,
       isRecurring,
-      recurrenceDays: isRecurring ? recurrenceDays : null,
+      recurrenceType: isRecurring ? recurrenceType : null,
+      recurrenceDays: isRecurring && recurrenceType === 'weekly' ? recurrenceDays : null,
+      recurrenceMonthDay: isRecurring && recurrenceType === 'monthly' ? recurrenceMonthDay : null,
     })
     .returning()
 
   if (isRecurring) {
-    await generateInstancesForTask(newTask.id, recurrenceDays || '')
+    if (recurrenceType === 'monthly' && recurrenceMonthDay) {
+      await generateMonthlyInstanceForTask(newTask.id, recurrenceMonthDay)
+    } else {
+      await generateInstancesForTask(newTask.id, recurrenceDays || '')
+    }
   }
 
   let assigneeName: string | undefined
@@ -133,7 +161,11 @@ export async function updateTask(id: number, formData: FormData) {
     ? Number(formData.get('assigneeId'))
     : null
   const isRecurring = formData.get('isRecurring') === 'true'
+  const recurrenceType = (formData.get('recurrenceType') as 'weekly' | 'monthly' | null) ?? 'weekly'
   const recurrenceDays = formData.get('recurrenceDays') as string | null
+  const recurrenceMonthDay = formData.get('recurrenceMonthDay')
+    ? Number(formData.get('recurrenceMonthDay'))
+    : null
 
   await db
     .update(tasks)
@@ -142,7 +174,9 @@ export async function updateTask(id: number, formData: FormData) {
       description: description || null,
       assigneeId,
       isRecurring,
-      recurrenceDays: isRecurring ? recurrenceDays : null,
+      recurrenceType: isRecurring ? recurrenceType : null,
+      recurrenceDays: isRecurring && recurrenceType === 'weekly' ? recurrenceDays : null,
+      recurrenceMonthDay: isRecurring && recurrenceType === 'monthly' ? recurrenceMonthDay : null,
       updatedAt: new Date(),
     })
     .where(eq(tasks.id, id))
@@ -234,6 +268,48 @@ async function generateInstancesForTask(
   }
 }
 
+async function generateMonthlyInstanceForTask(parentId: number, dayOfMonth: number) {
+  const parent = await db.select().from(tasks).where(eq(tasks.id, parentId)).limit(1)
+  if (!parent[0]) return
+
+  const today = getTodayDateString()
+  const [year, month, todayDay] = today.split('-').map(Number)
+
+  const candidates: string[] = []
+  // Always generate current month's instance
+  candidates.push(`${year}-${String(month).padStart(2, '0')}-${String(dayOfMonth).padStart(2, '0')}`)
+  // If today is on or past the scheduled day, also prepare next month
+  if (todayDay >= dayOfMonth) {
+    const nm = month === 12 ? 1 : month + 1
+    const ny = month === 12 ? year + 1 : year
+    candidates.push(`${ny}-${String(nm).padStart(2, '0')}-${String(dayOfMonth).padStart(2, '0')}`)
+  }
+
+  for (const date of candidates) {
+    // Validate date exists (e.g. day 30 in February is invalid)
+    const d = new Date(date + 'T12:00:00Z')
+    if (isNaN(d.getTime()) || d.getUTCDate() !== dayOfMonth) continue
+
+    const existing = await db
+      .select()
+      .from(tasks)
+      .where(and(eq(tasks.parentTaskId, parentId), eq(tasks.scheduledDate, date)))
+      .limit(1)
+
+    if (existing.length === 0) {
+      await db.insert(tasks).values({
+        title: parent[0].title,
+        description: parent[0].description,
+        assigneeId: parent[0].assigneeId,
+        status: 'pending',
+        isRecurring: false,
+        parentTaskId: parentId,
+        scheduledDate: date,
+      })
+    }
+  }
+}
+
 export async function generateRecurringInstances() {
   const recurringTasks = await db
     .select()
@@ -241,7 +317,11 @@ export async function generateRecurringInstances() {
     .where(and(eq(tasks.isRecurring, true), isNull(tasks.parentTaskId)))
 
   for (const task of recurringTasks) {
-    await generateInstancesForTask(task.id, task.recurrenceDays || '')
+    if (task.recurrenceType === 'monthly' && task.recurrenceMonthDay) {
+      await generateMonthlyInstanceForTask(task.id, task.recurrenceMonthDay)
+    } else {
+      await generateInstancesForTask(task.id, task.recurrenceDays || '')
+    }
   }
 }
 

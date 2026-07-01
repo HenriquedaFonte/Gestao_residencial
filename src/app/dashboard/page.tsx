@@ -6,11 +6,20 @@ import { DashboardHeader } from '@/components/DashboardHeader'
 
 export const dynamic = 'force-dynamic'
 
+function dayLabel(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const label = new Date(y, m - 1, d).toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+  })
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
 export default async function DashboardPage() {
-  // Ensure users are seeded on first run
   await seedUsers()
 
-  const [{ oneOffTasks, recurringToday }, upcomingEvents] = await Promise.all([
+  const [{ oneOffTasks, recurringToday, upcomingThisWeek }, upcomingEvents] = await Promise.all([
     getTasksForDashboard(),
     getUpcomingEvents(5),
   ])
@@ -19,6 +28,15 @@ export default async function DashboardPage() {
     ...oneOffTasks.filter(({ task }) => task.status === 'pending'),
     ...recurringToday.filter(({ task }) => task.status === 'pending'),
   ].length
+
+  // Group upcoming tasks by scheduled date
+  const upcomingByDay: Record<string, typeof upcomingThisWeek> = {}
+  for (const item of upcomingThisWeek) {
+    const date = item.task.scheduledDate!
+    if (!upcomingByDay[date]) upcomingByDay[date] = []
+    upcomingByDay[date].push(item)
+  }
+  const upcomingDays = Object.keys(upcomingByDay).sort()
 
   return (
     <div className="mx-auto max-w-lg px-4 py-6">
@@ -51,6 +69,27 @@ export default async function DashboardPage() {
           </div>
         )}
       </section>
+
+      {/* Upcoming this week */}
+      {upcomingDays.length > 0 && (
+        <section className="mt-8">
+          <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">Esta Semana</h2>
+          <div className="flex flex-col gap-4">
+            {upcomingDays.map((date) => (
+              <div key={date}>
+                <p className="mb-2 text-[10.5px] font-bold uppercase tracking-widest text-muted">
+                  {dayLabel(date)}
+                </p>
+                <div className="flex flex-col gap-2">
+                  {upcomingByDay[date].map(({ task, user }) => (
+                    <TaskCard key={task.id} task={task} user={user} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Upcoming Events */}
       <section className="mt-8">

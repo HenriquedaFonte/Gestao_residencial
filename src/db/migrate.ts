@@ -45,11 +45,10 @@ async function main() {
     )
   `
 
-  // Add completed_by_id to tasks if not exists
-  await sql`
-    ALTER TABLE tasks
-    ADD COLUMN IF NOT EXISTS completed_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL
-  `
+  // Add new columns to tasks if not exists
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL`
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurrence_type TEXT`
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurrence_month_day INTEGER`
 
   // Rewards table
   await sql`

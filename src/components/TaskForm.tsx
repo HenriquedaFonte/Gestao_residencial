@@ -15,6 +15,8 @@ const DAYS = [
   { value: '6', label: 'Sáb' },
 ]
 
+const MONTH_DAYS = Array.from({ length: 28 }, (_, i) => i + 1)
+
 const inputClass =
   'w-full rounded-[13px] border border-line bg-card px-4 py-3 text-[13px] font-medium text-ink placeholder-muted outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta-soft'
 
@@ -26,9 +28,13 @@ export function TaskForm({ task }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isRecurring, setIsRecurring] = useState(task?.isRecurring ?? false)
+  const [recurrenceType, setRecurrenceType] = useState<'weekly' | 'monthly'>(
+    task?.recurrenceType === 'monthly' ? 'monthly' : 'weekly'
+  )
   const [selectedDays, setSelectedDays] = useState<string[]>(
     task?.recurrenceDays ? task.recurrenceDays.split(',') : []
   )
+  const [monthDay, setMonthDay] = useState<number>(task?.recurrenceMonthDay ?? 1)
   const [error, setError] = useState('')
 
   function toggleDay(day: string) {
@@ -41,15 +47,17 @@ export function TaskForm({ task }: Props) {
     e.preventDefault()
     setError('')
 
-    if (isRecurring && selectedDays.length === 0) {
-      setError('Selecione pelo menos um dia para a recorrência.')
+    if (isRecurring && recurrenceType === 'weekly' && selectedDays.length === 0) {
+      setError('Selecione pelo menos um dia para a recorrência semanal.')
       return
     }
 
     const form = e.currentTarget
     const formData = new FormData(form)
     formData.set('isRecurring', String(isRecurring))
-    formData.set('recurrenceDays', selectedDays.sort().join(','))
+    formData.set('recurrenceType', recurrenceType)
+    formData.set('recurrenceDays', recurrenceType === 'weekly' ? selectedDays.sort().join(',') : '')
+    formData.set('recurrenceMonthDay', recurrenceType === 'monthly' ? String(monthDay) : '')
 
     startTransition(async () => {
       try {
@@ -129,26 +137,70 @@ export function TaskForm({ task }: Props) {
           </div>
           <div>
             <div className="text-[12.5px] font-semibold text-ink">Tarefa recorrente</div>
-            <div className="text-[10.5px] text-muted">Repete semanalmente</div>
+            <div className="text-[10.5px] text-muted">Repete automaticamente</div>
           </div>
         </label>
 
         {isRecurring && (
-          <div className="mt-4 flex flex-wrap gap-1.5">
-            {DAYS.map(({ value, label }) => (
+          <div className="mt-4">
+            {/* Weekly / Monthly segmented control */}
+            <div className="mb-4 flex rounded-xl border border-line bg-paper p-1">
               <button
-                key={value}
                 type="button"
-                onClick={() => toggleDay(value)}
-                className={`rounded-2xl px-3 py-1.5 text-[10.5px] font-semibold transition-colors ${
-                  selectedDays.includes(value)
+                onClick={() => setRecurrenceType('weekly')}
+                className={`flex-1 rounded-lg py-1.5 text-[11.5px] font-semibold transition-colors ${
+                  recurrenceType === 'weekly'
                     ? 'bg-terracotta text-white'
-                    : 'bg-terracotta-soft/60 text-muted hover:bg-terracotta-soft'
+                    : 'text-muted'
                 }`}
               >
-                {label}
+                Semanal
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={() => setRecurrenceType('monthly')}
+                className={`flex-1 rounded-lg py-1.5 text-[11.5px] font-semibold transition-colors ${
+                  recurrenceType === 'monthly'
+                    ? 'bg-terracotta text-white'
+                    : 'text-muted'
+                }`}
+              >
+                Mensal
+              </button>
+            </div>
+
+            {recurrenceType === 'weekly' ? (
+              <div className="flex flex-wrap gap-1.5">
+                {DAYS.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => toggleDay(value)}
+                    className={`rounded-2xl px-3 py-1.5 text-[10.5px] font-semibold transition-colors ${
+                      selectedDays.includes(value)
+                        ? 'bg-terracotta text-white'
+                        : 'bg-terracotta-soft/60 text-muted hover:bg-terracotta-soft'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <span className="text-[12.5px] text-muted">Todo dia</span>
+                <select
+                  value={monthDay}
+                  onChange={(e) => setMonthDay(Number(e.target.value))}
+                  className="rounded-[13px] border border-line bg-card px-3 py-2 text-[13px] font-semibold text-ink outline-none focus:border-terracotta"
+                >
+                  {MONTH_DAYS.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+                <span className="text-[12.5px] text-muted">do mês</span>
+              </div>
+            )}
           </div>
         )}
       </div>
