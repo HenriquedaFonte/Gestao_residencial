@@ -30,6 +30,9 @@ export const tasks = pgTable('tasks', {
   parentTaskId: integer('parent_task_id'),
   scheduledDate: date('scheduled_date'),
   completedAt: timestamp('completed_at'),
+  completedById: integer('completed_by_id').references(() => users.id, {
+    onDelete: 'set null',
+  }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
@@ -45,9 +48,22 @@ export const events = pgTable('events', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
+export const rewards = pgTable('rewards', {
+  id: serial('id').primaryKey(),
+  title: text('title').notNull(),
+  description: text('description'),
+  month: text('month').notNull(), // YYYY-MM
+  offeredById: integer('offered_by_id').references(() => users.id, {
+    onDelete: 'set null',
+  }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
 export type Task = typeof tasks.$inferSelect
 export type NewTask = typeof tasks.$inferInsert
 export type Event = typeof events.$inferSelect
 export type NewEvent = typeof events.$inferInsert
+export type Reward = typeof rewards.$inferSelect
+export type NewReward = typeof rewards.$inferInsert

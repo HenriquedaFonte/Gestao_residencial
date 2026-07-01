@@ -45,6 +45,24 @@ async function main() {
     )
   `
 
+  // Add completed_by_id to tasks if not exists
+  await sql`
+    ALTER TABLE tasks
+    ADD COLUMN IF NOT EXISTS completed_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+  `
+
+  // Rewards table
+  await sql`
+    CREATE TABLE IF NOT EXISTS rewards (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      month TEXT NOT NULL,
+      offered_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    )
+  `
+
   // Seed users
   await sql`
     INSERT INTO users (name)
@@ -53,7 +71,7 @@ async function main() {
   `
 
   console.log('✅ Banco de dados configurado com sucesso!')
-  console.log('   Tabelas: users, tasks, events')
+  console.log('   Tabelas: users, tasks, events, rewards')
   console.log('   Usuários: Henrique (id=1), Josiane (id=2)')
 }
 

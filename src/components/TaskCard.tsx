@@ -39,7 +39,7 @@ export function TaskCard({ task, user, showDate = false }: Props) {
       if (isCompleted) {
         await reopenTask(task.id)
       } else {
-        await completeTask(task.id, currentUser.name)
+        await completeTask(task.id, currentUser.name, currentUser.id)
       }
     })
   }

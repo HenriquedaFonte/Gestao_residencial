@@ -1,8 +1,8 @@
 'use server'
 
 import { db } from '@/db'
-import { tasks, events, users } from '@/db/schema'
-import { eq, and, isNull, isNotNull, gte, asc } from 'drizzle-orm'
+import { tasks, events, users, rewards } from '@/db/schema'
+import { eq, and, isNull, isNotNull, gte, lte, asc, count, sql as drizzleSql } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import {
   notifyTaskCreated,
@@ -153,10 +153,15 @@ export async function updateTask(id: number, formData: FormData) {
   revalidatePath('/tasks')
 }
 
-export async function completeTask(id: number, completedByName: string) {
+export async function completeTask(id: number, completedByName: string, completedById?: number) {
   const result = await db
     .update(tasks)
-    .set({ status: 'completed', completedAt: new Date(), updatedAt: new Date() })
+    .set({
+      status: 'completed',
+      completedAt: new Date(),
+      completedById: completedById ?? null,
+      updatedAt: new Date(),
+    })
     .where(eq(tasks.id, id))
     .returning()
 
@@ -167,17 +172,19 @@ export async function completeTask(id: number, completedByName: string) {
   revalidatePath('/')
   revalidatePath('/dashboard')
   revalidatePath('/tasks')
+  revalidatePath('/scores')
 }
 
 export async function reopenTask(id: number) {
   await db
     .update(tasks)
-    .set({ status: 'pending', completedAt: null, updatedAt: new Date() })
+    .set({ status: 'pending', completedAt: null, completedById: null, updatedAt: new Date() })
     .where(eq(tasks.id, id))
 
   revalidatePath('/')
   revalidatePath('/dashboard')
   revalidatePath('/tasks')
+  revalidatePath('/scores')
 }
 
 export async function deleteTask(id: number) {
@@ -314,4 +321,70 @@ export async function deleteEvent(id: number) {
   revalidatePath('/')
   revalidatePath('/dashboard')
   revalidatePath('/events')
+}
+
+// ─── Scores ───────────────────────────────────────────────────────────────────
+
+export async function getMonthlyScores(year: number, month: number) {
+  const start = `${year}-${String(month).padStart(2, '0')}-01T00:00:00.000Z`
+  const nextMonth = month === 12 ? 1 : month + 1
+  const nextYear = month === 12 ? year + 1 : year
+  const end = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01T00:00:00.000Z`
+
+  const rows = await db
+    .select({
+      completedById: tasks.completedById,
+      total: count(),
+    })
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.status, 'completed'),
+        isNotNull(tasks.completedById),
+        gte(tasks.completedAt, new Date(start)),
+        lte(tasks.completedAt, new Date(end))
+      )
+    )
+    .groupBy(tasks.completedById)
+
+  const allUsers = await db.select().from(users).orderBy(asc(users.id))
+
+  return allUsers.map((user) => {
+    const row = rows.find((r) => r.completedById === user.id)
+    return { user, total: Number(row?.total ?? 0) }
+  })
+}
+
+// ─── Rewards ──────────────────────────────────────────────────────────────────
+
+export async function getRewards(month: string) {
+  return db
+    .select({ reward: rewards, user: users })
+    .from(rewards)
+    .leftJoin(users, eq(rewards.offeredById, users.id))
+    .where(eq(rewards.month, month))
+    .orderBy(asc(rewards.createdAt))
+}
+
+export async function createReward(formData: FormData) {
+  const title = formData.get('title') as string
+  const description = formData.get('description') as string | null
+  const month = formData.get('month') as string
+  const offeredById = formData.get('offeredById')
+    ? Number(formData.get('offeredById'))
+    : null
+
+  await db.insert(rewards).values({
+    title,
+    description: description || null,
+    month,
+    offeredById,
+  })
+
+  revalidatePath('/scores')
+}
+
+export async function deleteReward(id: number) {
+  await db.delete(rewards).where(eq(rewards.id, id))
+  revalidatePath('/scores')
 }
