@@ -9,6 +9,13 @@ export const metadata: Metadata = {
   title: 'Casa Arrumada',
   description: 'Gerencie tarefas e eventos domésticos com Henrique e Josiane',
   manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/icons/icon.svg', type: 'image/svg+xml' },
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: '/icons/apple-touch-icon.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
