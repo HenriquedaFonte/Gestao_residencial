@@ -123,6 +123,7 @@ export async function createTask(formData: FormData) {
   const recurrenceMonthDay = formData.get('recurrenceMonthDay')
     ? Number(formData.get('recurrenceMonthDay'))
     : null
+  const points = Math.min(20, Math.max(1, Number(formData.get('points')) || 1))
 
   const [newTask] = await db
     .insert(tasks)
@@ -134,6 +135,7 @@ export async function createTask(formData: FormData) {
       recurrenceType: isRecurring ? recurrenceType : null,
       recurrenceDays: isRecurring && recurrenceType === 'weekly' ? recurrenceDays : null,
       recurrenceMonthDay: isRecurring && recurrenceType === 'monthly' ? recurrenceMonthDay : null,
+      points,
     })
     .returning()
 
@@ -171,6 +173,7 @@ export async function updateTask(id: number, formData: FormData) {
   const recurrenceMonthDay = formData.get('recurrenceMonthDay')
     ? Number(formData.get('recurrenceMonthDay'))
     : null
+  const points = Math.min(20, Math.max(1, Number(formData.get('points')) || 1))
 
   await db
     .update(tasks)
@@ -182,6 +185,7 @@ export async function updateTask(id: number, formData: FormData) {
       recurrenceType: isRecurring ? recurrenceType : null,
       recurrenceDays: isRecurring && recurrenceType === 'weekly' ? recurrenceDays : null,
       recurrenceMonthDay: isRecurring && recurrenceType === 'monthly' ? recurrenceMonthDay : null,
+      points,
       updatedAt: new Date(),
     })
     .where(eq(tasks.id, id))
@@ -268,6 +272,7 @@ async function generateInstancesForTask(
         isRecurring: false,
         parentTaskId: parentId,
         scheduledDate: date,
+        points: parent[0].points,
       })
     }
   }
@@ -310,6 +315,7 @@ async function generateMonthlyInstanceForTask(parentId: number, dayOfMonth: numb
         isRecurring: false,
         parentTaskId: parentId,
         scheduledDate: date,
+        points: parent[0].points,
       })
     }
   }
@@ -412,23 +418,15 @@ export async function deleteEvent(id: number) {
 
 // ─── Scores ───────────────────────────────────────────────────────────────────
 
-function taskPoints(recurrenceType: string | null): number {
-  if (recurrenceType === 'monthly') return 5
-  if (recurrenceType === 'weekly') return 3
-  return 1 // daily or one-off
-}
-
 export async function getMonthlyScores(year: number, month: number) {
   const { start, end } = getMonthRangeUtc(year, month)
-  const parentTask = alias(tasks, 'parent_task')
 
   const rows = await db
     .select({
       completedById: tasks.completedById,
-      parentRecurrenceType: parentTask.recurrenceType,
+      points: tasks.points,
     })
     .from(tasks)
-    .leftJoin(parentTask, eq(tasks.parentTaskId, parentTask.id))
     .where(
       and(
         eq(tasks.status, 'completed'),
@@ -442,7 +440,7 @@ export async function getMonthlyScores(year: number, month: number) {
 
   return allUsers.map((user) => {
     const userRows = rows.filter((r) => r.completedById === user.id)
-    const total = userRows.reduce((sum, r) => sum + taskPoints(r.parentRecurrenceType), 0)
+    const total = userRows.reduce((sum, r) => sum + r.points, 0)
     return { user, total }
   })
 }

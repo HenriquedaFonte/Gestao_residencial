@@ -122,6 +122,9 @@ export function TaskCard({ task, user, showDate = false }: Props) {
                 Recorrente
               </span>
             )}
+            <span className="inline-flex items-center rounded-full bg-line/40 px-2 py-0.5 text-[10.5px] font-semibold text-muted">
+              {task.points} pt{task.points !== 1 ? 's' : ''}
+            </span>
             {showDate && task.scheduledDate && (
               <span
                 className={`text-[10.5px] font-semibold ${

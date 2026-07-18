@@ -35,6 +35,7 @@ export function TaskForm({ task }: Props) {
     task?.recurrenceDays ? task.recurrenceDays.split(',') : []
   )
   const [monthDay, setMonthDay] = useState<number>(task?.recurrenceMonthDay ?? 1)
+  const [points, setPoints] = useState<number>(task?.points ?? 1)
   const [error, setError] = useState('')
 
   function toggleDay(day: string) {
@@ -58,6 +59,7 @@ export function TaskForm({ task }: Props) {
     formData.set('recurrenceType', recurrenceType)
     formData.set('recurrenceDays', recurrenceType === 'weekly' ? selectedDays.sort().join(',') : '')
     formData.set('recurrenceMonthDay', recurrenceType === 'monthly' ? String(monthDay) : '')
+    formData.set('points', String(points))
 
     startTransition(async () => {
       try {
@@ -118,6 +120,42 @@ export function TaskForm({ task }: Props) {
           <option value="1">Henrique</option>
           <option value="2">Josiane</option>
         </select>
+      </div>
+
+      {/* Points */}
+      <div className="rounded-[14px] border border-line bg-card p-4">
+        <label className="mb-1.5 block text-[11.5px] font-semibold text-muted">
+          Pontos ao concluir
+        </label>
+        <p className="mb-3 text-[10.5px] text-muted">
+          Defina de acordo com a dificuldade da tarefa, não com a frequência dela.
+        </p>
+        <div className="flex items-center gap-3">
+          <div className="flex gap-1.5">
+            {[1, 2, 3, 5, 8].map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPoints(p)}
+                className={`h-9 w-9 rounded-full text-[13px] font-semibold transition-colors ${
+                  points === p
+                    ? 'bg-terracotta text-white'
+                    : 'bg-terracotta-soft/60 text-muted hover:bg-terracotta-soft'
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+          <input
+            type="number"
+            min={1}
+            max={20}
+            value={points}
+            onChange={(e) => setPoints(Math.min(20, Math.max(1, Number(e.target.value) || 1)))}
+            className="w-16 rounded-[13px] border border-line bg-paper px-2 py-2 text-center text-[13px] font-semibold text-ink outline-none focus:border-terracotta"
+          />
+        </div>
       </div>
 
       {/* Recurring toggle */}

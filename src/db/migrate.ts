@@ -49,6 +49,28 @@ async function main() {
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL`
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurrence_type TEXT`
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurrence_month_day INTEGER`
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS points INTEGER NOT NULL DEFAULT 1`
+
+  // Backfill points for existing tasks created before manual scoring existed,
+  // matching the old implicit rule (weekly=3, monthly=5, daily/one-off=1)
+  await sql`
+    UPDATE tasks t SET points = 3
+    FROM tasks p
+    WHERE t.parent_task_id = p.id AND p.recurrence_type = 'weekly' AND t.points = 1
+  `
+  await sql`
+    UPDATE tasks t SET points = 5
+    FROM tasks p
+    WHERE t.parent_task_id = p.id AND p.recurrence_type = 'monthly' AND t.points = 1
+  `
+  await sql`
+    UPDATE tasks SET points = 3
+    WHERE recurrence_type = 'weekly' AND parent_task_id IS NULL AND points = 1
+  `
+  await sql`
+    UPDATE tasks SET points = 5
+    WHERE recurrence_type = 'monthly' AND parent_task_id IS NULL AND points = 1
+  `
 
   // Rewards table
   await sql`

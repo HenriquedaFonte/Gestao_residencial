@@ -31,6 +31,8 @@ export const tasks = pgTable('tasks', {
   recurrenceDays: text('recurrence_days'),
   // Monthly: day of month (1–28)
   recurrenceMonthDay: integer('recurrence_month_day'),
+  // Pontos ganhos ao concluir esta tarefa (definido na criação, herdado por instâncias geradas)
+  points: integer('points').default(1).notNull(),
   parentTaskId: integer('parent_task_id'),
   scheduledDate: date('scheduled_date'),
   completedAt: timestamp('completed_at'),

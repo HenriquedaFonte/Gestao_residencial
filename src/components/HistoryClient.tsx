@@ -16,12 +16,6 @@ type Props = {
   selectedUserId?: number
 }
 
-function taskPoints(recurrenceType: string | null): number {
-  if (recurrenceType === 'monthly') return 5
-  if (recurrenceType === 'weekly') return 3
-  return 1
-}
-
 function pointsLabel(pts: number) {
   return `${pts} pt${pts !== 1 ? 's' : ''}`
 }
@@ -113,7 +107,7 @@ export function HistoryClient({ history, users, currentMonth, selectedUserId }: 
   }
   const days = Object.keys(byDay).sort().reverse()
 
-  const totalPoints = history.reduce((sum, e) => sum + taskPoints(e.parentRecurrenceType), 0)
+  const totalPoints = history.reduce((sum, e) => sum + e.task.points, 0)
 
   return (
     <div className="mx-auto max-w-lg px-4 py-6">
@@ -198,7 +192,6 @@ export function HistoryClient({ history, users, currentMonth, selectedUserId }: 
               </p>
               <div className="flex flex-col gap-2">
                 {byDay[day].map(({ task, completedBy, parentRecurrenceType }) => {
-                  const pts = taskPoints(parentRecurrenceType)
                   const isHenrique = completedBy?.name === 'Henrique'
                   return (
                     <div
@@ -227,7 +220,7 @@ export function HistoryClient({ history, users, currentMonth, selectedUserId }: 
                       {/* Points badge */}
                       <div className="flex flex-col items-end gap-0.5">
                         <span className="font-serif text-[15px] font-semibold text-terracotta">
-                          +{pointsLabel(pts)}
+                          +{pointsLabel(task.points)}
                         </span>
                         <span className="text-[9.5px] font-medium text-muted">
                           {recurrenceLabel(parentRecurrenceType)}
