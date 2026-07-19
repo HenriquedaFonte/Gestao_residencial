@@ -40,6 +40,9 @@ export function TaskCard({ task, user, showDate = false }: Props) {
     !!task.scheduledDate &&
     !isToday(task.scheduledDate) &&
     !isPast(task.scheduledDate)
+  // Templates and future instances can both be completed today via a copy,
+  // without disturbing the template's own schedule
+  const canBringForward = isTemplate || isFutureInstance
 
   function handleToggle() {
     if (!currentUser || isTemplate) return
@@ -77,7 +80,7 @@ export function TaskCard({ task, user, showDate = false }: Props) {
       <button
         onClick={handleToggle}
         disabled={isPending || isTemplate}
-        title={isTemplate ? 'Conclua pelo dashboard no dia agendado' : undefined}
+        title={isTemplate ? "Use \"Fazer hoje\" abaixo para concluir uma ocorrência agora" : undefined}
         className={`mt-0.5 flex h-[21px] w-[21px] flex-shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
           isTemplate
             ? 'cursor-default border-line bg-line/40 text-muted'
@@ -151,7 +154,7 @@ export function TaskCard({ task, user, showDate = false }: Props) {
             )}
           </div>
         </Link>
-        {isFutureInstance && !isCompleted && (
+        {canBringForward && !isCompleted && (
           <button
             onClick={handleBringForward}
             disabled={isPending}

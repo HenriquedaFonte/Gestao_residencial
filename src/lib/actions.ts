@@ -225,25 +225,34 @@ export async function completeTask(id: number, completedByName: string, complete
   revalidatePath('/scores')
 }
 
-// Completes a copy of a future recurring instance today, without touching
-// the original — the original stays pending on its own scheduled day.
-export async function bringTaskForward(instanceId: number, completedByName: string, completedById?: number) {
-  const [instance] = await db.select().from(tasks).where(eq(tasks.id, instanceId)).limit(1)
-  if (!instance || !instance.parentTaskId) return
+// Completes a copy of a recurring task today, without touching the original —
+// works both from an already-generated future instance (e.g. under "Esta
+// Semana") and directly from the recurring template (e.g. when the scheduled
+// day is too far ahead to have generated an instance yet). Either way, the
+// original stays untouched: the future instance stays pending on its own day,
+// and the template keeps generating its regular instances normally.
+export async function bringTaskForward(taskId: number, completedByName: string, completedById?: number) {
+  const [source] = await db.select().from(tasks).where(eq(tasks.id, taskId)).limit(1)
+  if (!source) return
+
+  // Instance: link the clone to the same series via its parentTaskId.
+  // Template: it IS the series, so link the clone to the template's own id.
+  const parentTaskId = source.parentTaskId ?? (source.isRecurring ? source.id : null)
+  if (!parentTaskId) return
 
   const today = getTodayDateString()
 
   const [clone] = await db
     .insert(tasks)
     .values({
-      title: instance.title,
-      description: instance.description,
-      assigneeId: instance.assigneeId,
+      title: source.title,
+      description: source.description,
+      assigneeId: source.assigneeId,
       status: 'completed',
       isRecurring: false,
-      parentTaskId: instance.parentTaskId,
+      parentTaskId,
       scheduledDate: today,
-      points: instance.points,
+      points: source.points,
       completedAt: new Date(),
       completedById: completedById ?? null,
     })
