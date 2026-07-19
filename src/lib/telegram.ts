@@ -60,3 +60,13 @@ export async function notifyEventUpdated(eventTitle: string) {
     `✏️ <b>Evento atualizado:</b>\n\n<i>${eventTitle}</i>`
   )
 }
+
+export async function notifyPrizeRedeemed(
+  userName: string,
+  prizeTitle: string,
+  pointsCost: number
+) {
+  await sendTelegramMessage(
+    `🎁 <b>${userName}</b> resgatou um prêmio!\n\n<i>${prizeTitle}</i>\n💰 ${pointsCost} pontos`
+  )
+}

@@ -1,8 +1,8 @@
 'use server'
 
 import { db } from '@/db'
-import { tasks, events, users, rewards, monthlyWinners } from '@/db/schema'
-import { eq, and, isNull, isNotNull, gte, lte, gt, lt, asc, desc } from 'drizzle-orm'
+import { tasks, events, users, rewards, monthlyWinners, prizes, prizeRedemptions } from '@/db/schema'
+import { eq, and, isNull, isNotNull, gte, lte, gt, lt, asc, desc, sum } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { revalidatePath } from 'next/cache'
 import {
@@ -11,6 +11,7 @@ import {
   notifyTaskUpdated,
   notifyEventCreated,
   notifyEventUpdated,
+  notifyPrizeRedeemed,
   sendTelegramMessage,
 } from './telegram'
 import { getCurrentWeekDayNumbers, getWeekDates, getTodayDateString, getMonthRangeUtc } from './utils'
@@ -616,4 +617,100 @@ export async function createReward(formData: FormData) {
 export async function deleteReward(id: number) {
   await db.delete(rewards).where(eq(rewards.id, id))
   revalidatePath('/scores')
+}
+
+// ─── Loja de Prêmios (saldo vitalício de pontos) ──────────────────────────────
+
+export async function getLifetimeBalances() {
+  const allUsers = await db.select().from(users).orderBy(asc(users.id))
+
+  const earnedRows = await db
+    .select({ userId: tasks.completedById, earned: sum(tasks.points) })
+    .from(tasks)
+    .where(and(eq(tasks.status, 'completed'), isNotNull(tasks.completedById)))
+    .groupBy(tasks.completedById)
+
+  const spentRows = await db
+    .select({ userId: prizeRedemptions.userId, spent: sum(prizeRedemptions.pointsCost) })
+    .from(prizeRedemptions)
+    .groupBy(prizeRedemptions.userId)
+
+  return allUsers.map((user) => {
+    const earned = Number(earnedRows.find((r) => r.userId === user.id)?.earned ?? 0)
+    const spent = Number(spentRows.find((r) => r.userId === user.id)?.spent ?? 0)
+    return { user, earned, spent, balance: earned - spent }
+  })
+}
+
+export async function getPrizes() {
+  return db.select().from(prizes).orderBy(asc(prizes.pointsCost))
+}
+
+export async function createPrize(formData: FormData) {
+  const title = formData.get('title') as string
+  const description = formData.get('description') as string | null
+  const pointsCost = Math.max(1, Number(formData.get('pointsCost')) || 1)
+  const createdById = formData.get('createdById')
+    ? Number(formData.get('createdById'))
+    : null
+
+  await db.insert(prizes).values({
+    title,
+    description: description || null,
+    pointsCost,
+    createdById,
+  })
+
+  revalidatePath('/store')
+}
+
+export async function togglePrizeActive(id: number, active: boolean) {
+  await db.update(prizes).set({ active }).where(eq(prizes.id, id))
+  revalidatePath('/store')
+}
+
+export async function deletePrize(id: number) {
+  await db.delete(prizes).where(eq(prizes.id, id))
+  revalidatePath('/store')
+}
+
+export async function redeemPrize(
+  prizeId: number,
+  userId: number,
+  userName: string
+): Promise<{ success: boolean; error?: string }> {
+  const [prize] = await db.select().from(prizes).where(eq(prizes.id, prizeId)).limit(1)
+  if (!prize || !prize.active) {
+    return { success: false, error: 'Este prêmio não está mais disponível.' }
+  }
+
+  const balances = await getLifetimeBalances()
+  const balance = balances.find((b) => b.user.id === userId)?.balance ?? 0
+
+  if (balance < prize.pointsCost) {
+    return { success: false, error: 'Saldo de pontos insuficiente.' }
+  }
+
+  await db.insert(prizeRedemptions).values({
+    prizeId: prize.id,
+    prizeTitle: prize.title,
+    pointsCost: prize.pointsCost,
+    userId,
+  })
+
+  await notifyPrizeRedeemed(userName, prize.title, prize.pointsCost)
+
+  revalidatePath('/store')
+  revalidatePath('/scores')
+
+  return { success: true }
+}
+
+export async function getRedemptionHistory(limit = 30) {
+  return db
+    .select({ redemption: prizeRedemptions, user: users })
+    .from(prizeRedemptions)
+    .leftJoin(users, eq(prizeRedemptions.userId, users.id))
+    .orderBy(desc(prizeRedemptions.redeemedAt))
+    .limit(limit)
 }

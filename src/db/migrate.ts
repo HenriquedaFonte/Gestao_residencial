@@ -100,6 +100,31 @@ async function main() {
     )
   `
 
+  // Prizes catalog (redeemable with lifetime points)
+  await sql`
+    CREATE TABLE IF NOT EXISTS prizes (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      points_cost INTEGER NOT NULL,
+      active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    )
+  `
+
+  // Prize redemptions (spending lifetime points on a prize)
+  await sql`
+    CREATE TABLE IF NOT EXISTS prize_redemptions (
+      id SERIAL PRIMARY KEY,
+      prize_id INTEGER REFERENCES prizes(id) ON DELETE SET NULL,
+      prize_title TEXT NOT NULL,
+      points_cost INTEGER NOT NULL,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      redeemed_at TIMESTAMP DEFAULT NOW() NOT NULL
+    )
+  `
+
   // Seed users
   await sql`
     INSERT INTO users (name)
@@ -108,7 +133,7 @@ async function main() {
   `
 
   console.log('✅ Banco de dados configurado com sucesso!')
-  console.log('   Tabelas: users, tasks, events, rewards, monthly_winners')
+  console.log('   Tabelas: users, tasks, events, rewards, monthly_winners, prizes, prize_redemptions')
   console.log('   Usuários: Henrique (id=1), Josiane (id=2)')
 }
 

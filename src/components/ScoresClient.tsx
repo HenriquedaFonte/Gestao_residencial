@@ -125,12 +125,20 @@ export function ScoresClient({ scores, rewards, currentMonth, finalizedWinner }:
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <h1 className="font-serif text-2xl font-semibold text-ink">Placar</h1>
-        <button
-          onClick={() => router.push(`/history?month=${currentMonth}`)}
-          className="text-[12px] font-semibold text-terracotta"
-        >
-          Histórico
-        </button>
+        <div className="flex gap-4">
+          <button
+            onClick={() => router.push('/store')}
+            className="text-[12px] font-semibold text-terracotta"
+          >
+            Loja de Prêmios
+          </button>
+          <button
+            onClick={() => router.push(`/history?month=${currentMonth}`)}
+            className="text-[12px] font-semibold text-terracotta"
+          >
+            Histórico
+          </button>
+        </div>
       </div>
 
       {/* Month selector */}

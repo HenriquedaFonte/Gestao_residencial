@@ -80,6 +80,31 @@ export const monthlyWinners = pgTable(
   (table) => [unique('monthly_winners_month_unique').on(table.month)]
 )
 
+// ─── Loja de prêmios (saldo vitalício de pontos, resgatável) ───────────────
+export const prizes = pgTable('prizes', {
+  id: serial('id').primaryKey(),
+  title: text('title').notNull(),
+  description: text('description'),
+  pointsCost: integer('points_cost').notNull(),
+  active: boolean('active').default(true).notNull(),
+  createdById: integer('created_by_id').references(() => users.id, {
+    onDelete: 'set null',
+  }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+export const prizeRedemptions = pgTable('prize_redemptions', {
+  id: serial('id').primaryKey(),
+  prizeId: integer('prize_id').references(() => prizes.id, { onDelete: 'set null' }),
+  // Snapshot at redemption time — survives edits/deletion of the prize itself
+  prizeTitle: text('prize_title').notNull(),
+  pointsCost: integer('points_cost').notNull(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  redeemedAt: timestamp('redeemed_at').defaultNow().notNull(),
+})
+
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
 export type Task = typeof tasks.$inferSelect
@@ -90,3 +115,7 @@ export type Reward = typeof rewards.$inferSelect
 export type NewReward = typeof rewards.$inferInsert
 export type MonthlyWinner = typeof monthlyWinners.$inferSelect
 export type NewMonthlyWinner = typeof monthlyWinners.$inferInsert
+export type Prize = typeof prizes.$inferSelect
+export type NewPrize = typeof prizes.$inferInsert
+export type PrizeRedemption = typeof prizeRedemptions.$inferSelect
+export type NewPrizeRedemption = typeof prizeRedemptions.$inferInsert
