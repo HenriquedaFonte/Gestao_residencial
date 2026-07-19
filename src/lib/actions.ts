@@ -190,6 +190,13 @@ export async function updateTask(id: number, formData: FormData) {
     })
     .where(eq(tasks.id, id))
 
+  // Propagate the new points value to already-generated instances that
+  // haven't been completed yet (completed instances keep their historical points)
+  await db
+    .update(tasks)
+    .set({ points, updatedAt: new Date() })
+    .where(and(eq(tasks.parentTaskId, id), eq(tasks.status, 'pending')))
+
   await notifyTaskUpdated(title)
   revalidatePath('/')
   revalidatePath('/dashboard')
