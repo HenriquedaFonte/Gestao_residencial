@@ -225,6 +225,40 @@ export async function completeTask(id: number, completedByName: string, complete
   revalidatePath('/scores')
 }
 
+// Completes a copy of a future recurring instance today, without touching
+// the original — the original stays pending on its own scheduled day.
+export async function bringTaskForward(instanceId: number, completedByName: string, completedById?: number) {
+  const [instance] = await db.select().from(tasks).where(eq(tasks.id, instanceId)).limit(1)
+  if (!instance || !instance.parentTaskId) return
+
+  const today = getTodayDateString()
+
+  const [clone] = await db
+    .insert(tasks)
+    .values({
+      title: instance.title,
+      description: instance.description,
+      assigneeId: instance.assigneeId,
+      status: 'completed',
+      isRecurring: false,
+      parentTaskId: instance.parentTaskId,
+      scheduledDate: today,
+      points: instance.points,
+      completedAt: new Date(),
+      completedById: completedById ?? null,
+    })
+    .returning()
+
+  if (clone) {
+    await notifyTaskCompleted(clone.title, completedByName)
+  }
+
+  revalidatePath('/')
+  revalidatePath('/dashboard')
+  revalidatePath('/tasks')
+  revalidatePath('/scores')
+}
+
 export async function reopenTask(id: number) {
   await db
     .update(tasks)

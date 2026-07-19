@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { completeTask, reopenTask, deleteTask } from '@/lib/actions'
+import { completeTask, reopenTask, deleteTask, bringTaskForward } from '@/lib/actions'
 import { useCurrentUser } from './UserContext'
 import { Task, User } from '@/db/schema'
-import { formatDateShort, isToday } from '@/lib/utils'
+import { formatDateShort, isToday, isPast } from '@/lib/utils'
 
 type Props = {
   task: Task
@@ -34,6 +34,12 @@ export function TaskCard({ task, user, showDate = false }: Props) {
   const isHenrique = user?.name === 'Henrique'
   // Template: recurring parent task — only instances (from dashboard) can be completed
   const isTemplate = task.isRecurring && !task.parentTaskId
+  // Future recurring instance (e.g. shown under "Esta Semana") — can be brought forward to today
+  const isFutureInstance =
+    !!task.parentTaskId &&
+    !!task.scheduledDate &&
+    !isToday(task.scheduledDate) &&
+    !isPast(task.scheduledDate)
 
   function handleToggle() {
     if (!currentUser || isTemplate) return
@@ -43,6 +49,13 @@ export function TaskCard({ task, user, showDate = false }: Props) {
       } else {
         await completeTask(task.id, currentUser.name, currentUser.id)
       }
+    })
+  }
+
+  function handleBringForward() {
+    if (!currentUser) return
+    startTransition(async () => {
+      await bringTaskForward(task.id, currentUser.name, currentUser.id)
     })
   }
 
@@ -138,6 +151,15 @@ export function TaskCard({ task, user, showDate = false }: Props) {
             )}
           </div>
         </Link>
+        {isFutureInstance && !isCompleted && (
+          <button
+            onClick={handleBringForward}
+            disabled={isPending}
+            className="mt-1.5 text-[11px] font-semibold text-terracotta disabled:opacity-50"
+          >
+            Fazer hoje
+          </button>
+        )}
       </div>
 
       {/* Delete */}
