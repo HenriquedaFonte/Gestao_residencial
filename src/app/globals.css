@@ -39,6 +39,14 @@ button, a {
   touch-action: manipulation;
 }
 
+button, [role="button"], a, select, summary, label[for] {
+  cursor: pointer;
+}
+
+button:disabled, select:disabled {
+  cursor: not-allowed;
+}
+
 ::-webkit-scrollbar {
   width: 4px;
 }
