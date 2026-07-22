@@ -41,7 +41,7 @@ export async function getTodayTasks() {
     .from(tasks)
     .leftJoin(users, eq(tasks.assigneeId, users.id))
     .where(and(eq(tasks.scheduledDate, today), isNotNull(tasks.parentTaskId)))
-    .orderBy(asc(tasks.status), asc(tasks.createdAt))
+    .orderBy(asc(tasks.status), asc(tasks.title))
   // Also get non-recurring tasks without a date (one-off tasks created today)
 }
 
@@ -51,7 +51,7 @@ export async function getAllTasks() {
     .from(tasks)
     .leftJoin(users, eq(tasks.assigneeId, users.id))
     .where(isNull(tasks.parentTaskId))
-    .orderBy(asc(tasks.status), asc(tasks.createdAt))
+    .orderBy(asc(tasks.status), asc(tasks.title))
 }
 
 export async function getTasksForDashboard() {
@@ -76,7 +76,7 @@ export async function getTasksForDashboard() {
           eq(tasks.status, 'pending')
         )
       )
-      .orderBy(asc(tasks.createdAt)),
+      .orderBy(asc(tasks.title)),
 
     // Today's recurring instances (all statuses — completed ones show as crossed out)
     db
@@ -84,7 +84,7 @@ export async function getTasksForDashboard() {
       .from(tasks)
       .leftJoin(users, eq(tasks.assigneeId, users.id))
       .where(and(eq(tasks.scheduledDate, today), isNotNull(tasks.parentTaskId)))
-      .orderBy(asc(tasks.status), asc(tasks.createdAt)),
+      .orderBy(asc(tasks.status), asc(tasks.title)),
 
     // Upcoming recurring instances for the rest of the current week
     today < endOfWeek
@@ -99,7 +99,7 @@ export async function getTasksForDashboard() {
               lte(tasks.scheduledDate, endOfWeek)
             )
           )
-          .orderBy(asc(tasks.scheduledDate), asc(tasks.createdAt))
+          .orderBy(asc(tasks.scheduledDate), asc(tasks.title))
       : Promise.resolve([] as { task: Task; user: User | null }[]),
   ])
 
